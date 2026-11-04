@@ -2,6 +2,10 @@
 <resources>
     <!-- Tên ứng dụng hiển thị trên màn hình -->
     <string name="app_name">Kênh YouTube</string>
-    <!-- Link kênh YouTube của bạn: ĐỔI Ở ĐÂY -->
-    <string name="channel_url">https://www.youtube.com/@nguyencmu69</string>
+    <!-- Trang danh sách phát (playlists) của kênh -->
+    <string name="channel_url">https://www.youtube.com/@nguyencmu69/playlists</string>
+    <!-- true = dùng giao diện YouTube bản máy tính (thử nếu video vẫn mờ) -->
+    <bool name="desktop_mode">false</bool>
+    <!-- true = tự phát lần lượt tất cả playlist rồi lặp lại; false = chỉ duyệt kênh bình thường -->
+    <bool name="auto_play_playlists">true</bool>
 </resources>
