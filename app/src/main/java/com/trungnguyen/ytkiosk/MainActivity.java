@@ -18,7 +18,11 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends Activity {
@@ -44,6 +48,24 @@ public class MainActivity extends Activity {
             + "if(p.setPlaybackQuality){p.setPlaybackQuality('hd1080');}"
             + "}}catch(e){}})();";
 
+    // Chặn VP9/AV1 để YouTube chỉ gửi video H.264 (giống tiện ích h264ify).
+    // Phù hợp box cũ chỉ giải mã phần cứng H.264.
+    private static final String H264_JS =
+            "(function(){if(window.__h264ify)return;window.__h264ify=true;"
+            + "function bad(t){return typeof t==='string'&&/(vp9|vp09|av01|av1)/i.test(t);}"
+            + "try{"
+            + "var ms=window.MediaSource;"
+            + "if(ms&&ms.isTypeSupported){var o=ms.isTypeSupported.bind(ms);"
+            + "ms.isTypeSupported=function(t){return bad(t)?false:o(t);};}"
+            + "var o2=HTMLMediaElement.prototype.canPlayType;"
+            + "HTMLMediaElement.prototype.canPlayType=function(t){return bad(t)?'':o2.call(this,t);};"
+            + "var mc=navigator.mediaCapabilities;"
+            + "if(mc&&mc.decodingInfo){var o3=mc.decodingInfo.bind(mc);"
+            + "mc.decodingInfo=function(c){var t=c&&c.video&&c.video.contentType;"
+            + "if(bad(t))return Promise.resolve({supported:false,smooth:false,powerEfficient:false});"
+            + "return o3(c);};}"
+            + "}catch(e){}})();";
+
     // Lấy danh sách ID playlist trên trang /playlists (cuộn xuống để tải hết)
     private static final String DISCOVER_JS =
             "(function(){try{window.scrollTo(0,document.documentElement.scrollHeight);}catch(e){}"
@@ -59,6 +81,8 @@ public class MainActivity extends Activity {
             + "var m=location.search.match(/[?&]v=([^&]+)/);var l=location.search.match(/[?&]list=([^&]+)/);"
             + "if(v.paused&&!v.ended){try{v.play();}catch(e){}}"
             + "return (v.ended?'1':'0')+'|'+(m?m[1]:'')+'|'+(l?l[1]:'');})();";
+
+    private boolean forceH264;
 
     private enum Mode { BROWSE, DISCOVER, PLAY }
 
@@ -99,6 +123,8 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(root);
 
+        forceH264 = getResources().getBoolean(R.bool.force_h264);
+
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -118,6 +144,11 @@ public class MainActivity extends Activity {
                     + "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
         }
 
+        // Ép H.264: đăng ký script chạy trước mọi script của trang (nếu WebView hỗ trợ)
+        if (forceH264 && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            WebViewCompat.addDocumentStartJavaScript(webView, H264_JS, Collections.singleton("*"));
+        }
+
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
 
@@ -130,9 +161,22 @@ public class MainActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return handleUrl(request.getUrl());
             }
+
+            // Dự phòng cho WebView cũ không hỗ trợ script chạy từ đầu trang
+            @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                if (forceH264) view.evaluateJavascript(H264_JS, null);
+            }
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onProgressChanged(WebView view, int newProgress) {
+                super.onProgressChanged(view, newProgress);
+                if (forceH264 && newProgress < 100) view.evaluateJavascript(H264_JS, null);
+            }
+
             @Override
             public void onShowCustomView(View view, CustomViewCallback callback) {
                 if (customView != null) {
