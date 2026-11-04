@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tên ứng dụng hiển thị trên màn hình -->
+    <string name="app_name">Kênh YouTube</string>
+    <!-- Link kênh YouTube của bạn: ĐỔI Ở ĐÂY -->
+    <string name="channel_url">https://www.youtube.com/@nguyencmu69</string>
+</resources>
