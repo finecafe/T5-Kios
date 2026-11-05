@@ -7,7 +7,7 @@
     <!-- true = dùng giao diện YouTube bản máy tính (thử nếu video vẫn mờ) -->
     <bool name="desktop_mode">false</bool>
     <!-- true = ép YouTube chỉ gửi video H.264 (chặn VP9/AV1), hợp với box cũ -->
-    <bool name="force_h264">false</bool>
+    <bool name="force_h264">true</bool>
     <!-- true = tự phát lần lượt tất cả playlist rồi lặp lại; false = chỉ duyệt kênh bình thường -->
     <bool name="auto_play_playlists">true</bool>
 </resources>
