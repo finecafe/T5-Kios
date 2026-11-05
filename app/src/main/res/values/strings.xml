@@ -5,7 +5,7 @@
     <!-- Trang danh sách phát (playlists) của kênh -->
     <string name="channel_url">https://www.youtube.com/@nguyencmu69/playlists</string>
     <!-- true = dùng giao diện YouTube bản máy tính (thử nếu video vẫn mờ) -->
-    <bool name="desktop_mode">false</bool>
+    <bool name="desktop_mode">true</bool>
     <!-- true = ép YouTube chỉ gửi video H.264 (chặn VP9/AV1), hợp với box cũ -->
     <bool name="force_h264">true</bool>
     <!-- true = tự phát lần lượt tất cả playlist rồi lặp lại; false = chỉ duyệt kênh bình thường -->
