@@ -83,6 +83,17 @@ public class MainActivity extends Activity {
             + "return (v.ended?'1':'0')+'|'+(m?m[1]:'')+'|'+(l?l[1]:'');})();";
 
     private boolean forceH264;
+    private boolean fallbackUsed = false;
+
+    private static final String UA_MOBILE = "Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 "
+            + "(KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
+    private static final String UA_DESKTOP = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            + "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
+    // Phát hiện thông báo lỗi "YouTube is not currently available on this device"
+    private static final String UNAVAILABLE_JS =
+            "(function(){var b=document.body;return (b&&/not currently available on this device/i"
+            + ".test(b.innerText||''))?'1':'0';})();";
 
     private enum Mode { BROWSE, DISCOVER, PLAY }
 
@@ -138,11 +149,8 @@ public class MainActivity extends Activity {
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         s.setTextZoom(100);
 
-        // Tuỳ chọn: giao diện máy tính (YouTube cho phép chất lượng cao hơn). Bật trong strings.xml
-        if (getResources().getBoolean(R.bool.desktop_mode)) {
-            s.setUserAgentString("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                    + "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
-        }
+        // Luôn giả lập trình duyệt Chrome chuẩn để YouTube không coi đây là "thiết bị TV không hỗ trợ"
+        s.setUserAgentString(getResources().getBoolean(R.bool.desktop_mode) ? UA_DESKTOP : UA_MOBILE);
 
         // Ép H.264: đăng ký script chạy trước mọi script của trang (nếu WebView hỗ trợ)
         if (forceH264 && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
@@ -251,6 +259,20 @@ public class MainActivity extends Activity {
     private void tick() {
         if (webView == null) return;
         webView.evaluateJavascript(FORCE_QUALITY_JS, null);
+
+        // Gặp lỗi "not available on this device": chuyển sang giao diện máy tính và tải lại (1 lần)
+        if (!fallbackUsed) {
+            webView.evaluateJavascript(UNAVAILABLE_JS, v -> {
+                if (fallbackUsed || !unquote(v).equals("1")) return;
+                fallbackUsed = true;
+                webView.getSettings().setUserAgentString(UA_DESKTOP);
+                if (getResources().getBoolean(R.bool.auto_play_playlists)) {
+                    startDiscover();
+                } else {
+                    webView.loadUrl(getString(R.string.channel_url));
+                }
+            });
+        }
 
         if (mode == Mode.DISCOVER) {
             discoverTicks++;
