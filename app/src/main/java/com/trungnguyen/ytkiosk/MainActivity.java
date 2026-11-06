@@ -85,14 +85,22 @@ public class MainActivity extends Activity {
     private boolean forceH264;
     private boolean fallbackUsed = false;
 
-    private static final String UA_MOBILE = "Mozilla/5.0 (Linux; Android 10; Pixel 4) AppleWebKit/537.36 "
-            + "(KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
-    private static final String UA_DESKTOP = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-            + "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+    // User-Agent gốc của WebView trên box (giữ đúng phiên bản Chrome thật để YouTube gửi bản web tương thích)
+    private String defaultUa;
+
+    private String buildUa(String mode) {
+        if (defaultUa == null) return null;
+        String clean = defaultUa.replace("; wv", "").replace(" Version/4.0", "");
+        if ("clean".equals(mode)) return clean;
+        if ("desktop".equals(mode)) {
+            return clean.replaceAll("\\(Linux;[^)]*\\)", "(X11; Linux x86_64)").replace(" Mobile", "");
+        }
+        return defaultUa;
+    }
 
     // Phát hiện thông báo lỗi "YouTube is not currently available on this device"
     private static final String UNAVAILABLE_JS =
-            "(function(){var b=document.body;return (b&&/not currently available on this device/i"
+            "(function(){var b=document.body;return (b&&/not currently available on this device|không khả dụng trên thiết bị này/i"
             + ".test(b.innerText||''))?'1':'0';})();";
 
     private enum Mode { BROWSE, DISCOVER, PLAY }
@@ -149,8 +157,13 @@ public class MainActivity extends Activity {
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         s.setTextZoom(100);
 
-        // Luôn giả lập trình duyệt Chrome chuẩn để YouTube không coi đây là "thiết bị TV không hỗ trợ"
-        s.setUserAgentString(getResources().getBoolean(R.bool.desktop_mode) ? UA_DESKTOP : UA_MOBILE);
+        // Chế độ User-Agent: default (nguyên bản) | clean (bỏ dấu hiệu WebView) | desktop. Chỉnh trong strings.xml
+        defaultUa = s.getUserAgentString();
+        String uaMode = getString(R.string.ua_mode);
+        if (!"default".equals(uaMode)) {
+            String ua = buildUa(uaMode);
+            if (ua != null) s.setUserAgentString(ua);
+        }
 
         // Ép H.264: đăng ký script chạy trước mọi script của trang (nếu WebView hỗ trợ)
         if (forceH264 && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
@@ -265,7 +278,8 @@ public class MainActivity extends Activity {
             webView.evaluateJavascript(UNAVAILABLE_JS, v -> {
                 if (fallbackUsed || !unquote(v).equals("1")) return;
                 fallbackUsed = true;
-                webView.getSettings().setUserAgentString(UA_DESKTOP);
+                String ua = buildUa("clean");
+                if (ua != null) webView.getSettings().setUserAgentString(ua);
                 if (getResources().getBoolean(R.bool.auto_play_playlists)) {
                     startDiscover();
                 } else {
