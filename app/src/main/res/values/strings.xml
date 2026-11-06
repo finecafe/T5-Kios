@@ -5,7 +5,7 @@
     <!-- Trang danh sách phát (playlists) của kênh -->
     <string name="channel_url">https://www.youtube.com/@nguyencmu69/playlists</string>
     <!-- true = dùng giao diện YouTube bản máy tính (thử nếu video vẫn mờ) -->
-    <bool name="desktop_mode">false</bool>
+    <bool name="desktop_mode">true</bool>
     <!-- Kiểu User-Agent: default = nguyên bản của box (khuyên dùng) | clean = bỏ dấu hiệu WebView | desktop = bản máy tính -->
     <string name="ua_mode">clean</string>
     <!-- true = ép YouTube chỉ gửi video H.264 (chặn VP9/AV1), hợp với box cũ -->
